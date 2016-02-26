@@ -1,0 +1,56 @@
+const int txPin    = 6;
+
+#define DATAOUT 11//MOSI
+#define DATAIN  12//MISO 
+#define SPICLOCK  13//sck
+#define SLAVESELECT 10//ss
+
+//opcodes
+#define READ  3
+#define WRITE 2
+
+byte clr = 0;
+
+char spi_transfer(volatile char data)
+{
+  SPDR = data;                    // Start the transmission
+  while (!(SPSR & (1<<SPIF)))     // Wait the end of the transmission
+  {
+  };
+  return SPDR;                    // return the received byte
+}
+
+void setup()
+{
+
+  pinMode(DATAOUT, OUTPUT);
+  pinMode(DATAIN, INPUT);
+  pinMode(SPICLOCK,OUTPUT);
+  pinMode(SLAVESELECT,OUTPUT);
+  digitalWrite(SLAVESELECT,HIGH); //disable device
+  // SPCR = 01010000
+  //interrupt disabled,spi enabled,msb 1st,master,clk low when idle,
+  //sample on leading edge of clk,system clock/4 rate (fastest)
+  SPCR = (1<<SPE)|(1<<MSTR)|(1<<CPOL);
+  clr=SPSR;
+  clr=SPDR;
+  delay(10);
+
+  digitalWrite(SLAVESELECT,HIGH); //release chip
+  delay(1000);
+
+}
+
+void loop()
+{
+  //READ
+  int data;
+  int address = 0x00;
+  digitalWrite(SLAVESELECT,LOW);
+  // spi_transfer(READ); //transmit read opcode
+  // spi_transfer((char)(address>>8));   //send MSByte address first
+  // spi_transfer((char)(address));      //send LSByte address
+  data = spi_transfer(address); //get data byte
+  digitalWrite(SLAVESELECT,HIGH); //release chip, signal end transfer
+
+}

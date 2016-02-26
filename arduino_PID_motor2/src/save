@@ -1,0 +1,59 @@
+//Include Encoder and PID_v1 to enable DCMotorServo's usage of them.
+//(see: http://stackoverflow.com/questions/6504211/is-it-possible-to-include-a-library-from-another-library-using-the-arduino-ide)
+
+#include "Encoder.h"
+#include "PID_v1.h"
+#include "DCMotorServo.h"
+
+#define pin_dcmoto_dir1 7
+#define pin_dcmoto_dir2 9
+#define pin_dcmoto_pwm_out 11
+#define pin_dcmoto_encode1 3
+#define pin_dcmoto_encode2 2
+#define potPin 0
+
+int val = 0;
+int dir = 1;
+int i = 0;
+int inc = 100;
+int max = 2000;
+
+//Determined by experimentation, depends on your encoder, and your belt/gearing ratios:
+#define encoderTicks 4000
+
+DCMotorServo servo = DCMotorServo(pin_dcmoto_dir1, pin_dcmoto_dir2, pin_dcmoto_pwm_out, pin_dcmoto_encode1, pin_dcmoto_encode2);
+
+void setup() {
+
+  //Tune the servo feedback
+  //Determined by trial and error
+  // servo.myPID->SetTunings(0.1,0.15,0.05);
+  servo.myPID->SetTunings(0.2,0.2,0.0);
+  servo.setPWMSkip(50);
+  servo.setAccuracy(50);
+  //Un-necessary, initializes to 0:
+  //servo.setCurrentPosition(0);
+  Serial.begin(9600);
+  Serial.println("thing");
+
+}
+
+
+void loop() {
+  //wait 1s before starting
+  static bool motor_go = 0;
+
+  servo.run();
+
+  if (servo.finished()) {
+    i += inc;
+    if (i > max) {
+      i = 0;
+      dir = dir * -1;
+      delay(1000);
+    }
+    servo.move(inc * dir);
+    motor_go = 1;
+  }
+  
+}

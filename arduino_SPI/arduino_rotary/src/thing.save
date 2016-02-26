@@ -1,0 +1,44 @@
+#include <SoftwareSerial.h>
+
+const int txPin    = 6;
+SoftwareSerial mySerial = SoftwareSerial(255, txPin);
+
+volatile int pulseCounter = 0;
+volatile int state = 0;
+long previousMillis = 0;
+int resetInterval = 4000;
+int count = 0;
+
+void setup() {
+
+  pinMode(txPin, OUTPUT);
+  attachInterrupt(1, intA, CHANGE);
+
+  mySerial.begin(9600);
+  delay(100);
+  mySerial.write(12);                 // Clear             
+  mySerial.write(17);                 // Turn backlight on
+  delay(5);                           // Required delay
+  mySerial.print("Read pulses");  // First line
+  mySerial.write(13);                 // Form feed
+  mySerial.print("...!");   // Second line
+  mySerial.write(212);                // Quarter note
+  mySerial.write(220);                // A tone
+  delay(2000);                        
+}
+
+
+void loop(){
+  // mySerial.write(12);                 // Clear             
+  // mySerial.print(pulseCounter);
+  // digitalWrite(pin, state);
+  // delay(500);
+  digitalWrite(13, state);
+  pulseCounter = 0;
+}
+
+void intA() {
+  state = !state;
+  pulseCounter = pulseCounter + 1;
+}
+

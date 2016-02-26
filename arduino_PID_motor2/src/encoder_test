@@ -1,0 +1,38 @@
+//Include Encoder and PID_v1 to enable DCMotorServo's usage of them.
+//(see: http://stackoverflow.com/questions/6504211/is-it-possible-to-include-a-library-from-another-library-using-the-arduino-ide)
+
+#include "Encoder.h"
+#include "PID_v1.h"
+#include "DCMotorServo.h"
+
+#define pin_dcmoto_dir1 7
+#define pin_dcmoto_dir2 9
+#define pin_dcmoto_pwm_out 11
+#define pin_dcmoto_encode1 3
+#define pin_dcmoto_encode2 2
+//Determined by experimentation, depends on your encoder, and your belt/gearing ratios:
+
+static unsigned long motor_timeout = 0;
+
+Encoder * position;
+
+void setup() {
+
+  position = new Encoder(pin_dcmoto_encode1, pin_dcmoto_encode2);
+
+  Serial.begin(9600);
+  Serial.println("thing");
+
+  motor_timeout = millis() + 1500;
+
+}
+
+
+void loop() {
+
+  if(motor_timeout < millis()) {
+      Serial.println("go");
+      Serial.println(position->read());
+      motor_timeout = millis() + 1500;
+  }
+}

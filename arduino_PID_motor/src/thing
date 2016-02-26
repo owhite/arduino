@@ -1,0 +1,44 @@
+ 
+#define LCD_REFRESH_INTERVAL_MS 100
+ 
+/* Pin assignments */
+#define INTERRUPT_INPUT 2
+ 
+int pulse_counter = 0;
+ 
+ 
+void setup()
+{
+  Serial.begin(9600);
+  clear_LCD();
+    
+  // For noise suppression, enable pullup on interrupt pin
+  digitalWrite(INTERRUPT_INPUT, HIGH);
+  attachInterrupt(INTERRUPT_INPUT - 2,
+                  interrupt_handler,
+                  RISING);
+}
+ 
+ 
+void loop()
+  // Keep LCD blank till a pulse comes in
+  if (pulse_counter > 0)
+  {
+    clear_LCD();
+    Serial.println(pulse_counter);
+    delay(LCD_REFRESH_INTERVAL_MS);
+  }
+}
+ 
+ 
+void clear_LCD()
+{
+  Serial.write(0xFE);
+  Serial.write(0x01);
+}
+ 
+ 
+void interrupt_handler()
+{
+  pulse_counter = pulse_counter + 1;
+}
