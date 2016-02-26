@@ -1,0 +1,167 @@
+#include <SPI.h>
+
+// SPI is incompatible with abs() so do this:
+#ifdef abs
+#undef abs
+#endif
+
+#define abs(x) ((x)>0?(x):-(x)) 
+
+// piezo speaker
+const int beepPin = 8;
+
+// stepper pins
+const int stepPin    = 2; // red 
+const int dirPin     = 3; // orange
+const int delayTime = 1000;
+
+// some commands for the LCD
+const int clearLCD = 12;
+const int formFeed = 13;
+
+// pin 2 of the rotary encoder (clk, purple) connects to Uno board pin 13
+// pin 4 of the rotary encoder (digital out, grey) --> Uno board pin 12 (miso)
+const int chipSelectPin = 10; // attaches to pin 6 of encoder, white
+
+const int upSwitchPin = 5;
+const int dnSwitchPin = 4;
+
+const int UP     = 1;
+const int MIDDLE = 2;
+const int DOWN   = 3;
+
+unsigned long resetInterval = 400;
+unsigned long previousMillis = 0;
+unsigned long currentMillis = 0;
+
+int moveState = MIDDLE;
+int motorState = false;
+int serialState = 0;
+
+unsigned long setMotorTimer = 0;
+unsigned long incomingDuration = 0;
+int incomingDirection = 0;
+
+int oldPosition = 0;
+int curPosition = 0;
+
+int positionThreshold = 2;
+
+int errorState = 1;
+
+void setup() {
+
+  Serial.begin(19200);
+  delay(2000);
+
+  // stepper stuff
+  pinMode(stepPin, OUTPUT);
+  digitalWrite(stepPin, LOW); 
+  pinMode(dirPin, OUTPUT);
+  digitalWrite(dirPin, LOW); 
+
+  // SPI settings for Bourns EMS22A50-B28-LS6
+  SPI.begin();
+  SPI.setDataMode(SPI_MODE3);
+  SPI.setClockDivider(SPI_CLOCK_DIV16); // its slow
+  SPI.setBitOrder(MSBFIRST);
+  pinMode(chipSelectPin, OUTPUT);
+  delay(100);
+
+  // other pins to play with
+  pinMode(dnSwitchPin, INPUT_PULLUP);
+  pinMode(upSwitchPin, INPUT_PULLUP);
+  
+  // say hi to the user
+  tone(beepPin, 440, 100);
+}
+
+void loop() {
+
+  // see if linuxcnc is talking to the arduino
+  while (Serial.available() > 0) {
+    incomingDirection = Serial.parseInt();
+    incomingDuration = Serial.parseInt();
+    if (Serial.read() == '\n') {
+      setMotorTimer = millis();
+      serialState = 1;
+    }
+ }
+
+  if (serialState == 1) { // if yes then the incoming information takes precedent
+    if (incomingDirection != UP || incomingDirection != DOWN) {
+      incomingDirection = MIDDLE;
+    }
+    currentMillis = millis();
+    if ((currentMillis - setMotorTimer) <= incomingDuration) {
+      moveState = incomingDirection;
+    }
+    else {
+      incomingDirection = MIDDLE; // just in case
+      serialState = 0;
+    }
+  }
+  else { // if not then the switch state takes precedent
+    moveState = getMoveState();
+  }
+
+  if (moveState == MIDDLE && motorState == true) {
+    // user just stopped requesting motor movement
+    delay(100);
+    motorState = false;
+  }
+  if (moveState != MIDDLE && motorState == false) {
+    // user just requested motor movement
+    delay(100);
+    motorState = true;
+    runMotors();
+  }
+}
+
+void runMotors() {
+  while(moveState != MIDDLE) {
+    digitalWrite(stepPin, HIGH);
+    delayMicroseconds(delayTime);
+    digitalWrite(stepPin, LOW);
+    delayMicroseconds(delayTime);
+    moveState = getMoveState();
+  }
+}
+
+int getMoveState() {
+  int state = MIDDLE;
+
+  // not doing any debouncing at this point
+  // which might have impact when the motor is running
+  if (!(digitalRead(upSwitchPin))) {
+    digitalWrite(dirPin, HIGH); 
+    state = UP;
+  }
+  else if (!(digitalRead(dnSwitchPin))) {
+    digitalWrite(dirPin, LOW); 
+    state = DOWN;
+  }  
+  else {
+    return MIDDLE;
+  }
+  return(state);
+}
+
+// code to read the SPI of Bourns encoder p/n EMS22A50-B28-LS6
+// this is not consistent with the docs that seems to state
+// that a whole byte of position data comes in, but it needed
+// to get shifted over 3 bits. 
+int readSPI() {
+  int result = 0;
+  byte inByte = 0;
+
+  digitalWrite(chipSelectPin, LOW);  // assert chip select
+  result = SPI.transfer(0x00);       // read a byte
+  inByte = SPI.transfer(0x00);       // read a byte
+  result = result << 3; // doesnt makes sense but make room for 3 more bits
+  digitalWrite(chipSelectPin, HIGH); // deselect
+  inByte &= 0b11100000; // mask off the first three bits
+  inByte = inByte >> 5;  
+  return (result | inByte); // add in the bits and return
+}
+
