@@ -10,7 +10,7 @@ The joystick modules are composed of two potentiometers, and reading them was as
 
 ## CONSTRUCTION
 * Step 1: build [laser](https://www.reddit.com/r/lasercutting/comments/55f0kb/meet_my_300w_co2_laser/) that cuts sheet metal and wood;
-* Step 2: design [files](https://github.com/owhite/arduino/blob/master/joystick/docs/joystick.pdf) [dxf](https://github.com/owhite/arduino/blob/master/joystick/docs/joystick.dxf);
+* Step 2: design [[files](https://github.com/owhite/arduino/blob/master/joystick/docs/joystick.pdf)] [[dxf](https://github.com/owhite/arduino/blob/master/joystick/docs/joystick.dxf)];
 * Step 3: print parts, and assemble;
 
 ## CODE
